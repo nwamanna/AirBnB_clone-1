@@ -27,7 +27,8 @@ class HBNBCommand(cmd.Cmd):
     types = {
              'number_rooms': int, 'number_bathrooms': int,
              'max_guest': int, 'price_by_night': int,
-             'latitude': float, 'longitude': float
+             'latitude': float, 'longitude': float,
+             'city_id' : str, 'user_id': str, 'name': str
             }
 
     def preloop(self):
@@ -115,13 +116,27 @@ class HBNBCommand(cmd.Cmd):
 
     def do_create(self, args):
         """ Create an object of any class"""
+        args_list = args.split()
         if not args:
             print("** class name missing **")
             return
-        elif args not in HBNBCommand.classes:
+        elif args_list[0] not in HBNBCommand.classes:
             print("** class doesn't exist **")
             return
-        new_instance = HBNBCommand.classes[args]()
+        attr_dict = {}
+        for i in args_list:
+            attr_list = i.split('=')
+            attr_name = attr_list[0]
+            if len(attr_list) > 1:
+                attr_val = attr_list[1].strip('"')
+                if '_' in attr_val:
+                    attr_val = attr_val.replace('_', ' ')
+            if attr_name in HBNBCommand.types:
+                attr_val = HBNBCommand.types[attr_name](attr_val)
+                attr_dict[attr_name] = attr_val
+        new_instance = HBNBCommand.classes[args_list[0]]()
+        for k, v in attr_dict.items():
+            setattr(new_instance, k, v)
         storage.save()
         print(new_instance.id)
         storage.save()
