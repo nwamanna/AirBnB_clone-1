@@ -27,65 +27,13 @@ class HBNBCommand(cmd.Cmd):
     types = {
              'number_rooms': int, 'number_bathrooms': int,
              'max_guest': int, 'price_by_night': int,
-             'latitude': float, 'longitude': float,
-             'city_id' : str, 'user_id': str, 'name': str
+             'latitude': float, 'longitude': float
             }
 
     def preloop(self):
         """Prints if isatty is false"""
         if not sys.__stdin__.isatty():
             print('(hbnb)')
-
-    def precmd(self, line):
-        """Reformat command line for advanced command syntax.
-
-        Usage: <class name>.<command>([<id> [<*args> or <**kwargs>]])
-        (Brackets denote optional fields in usage example.)
-        """
-        _cmd = _cls = _id = _args = ''  # initialize line elements
-
-        # scan for general formating - i.e '.', '(', ')'
-        if not ('.' in line and '(' in line and ')' in line):
-            return line
-
-        try:  # parse line left to right
-            pline = line[:]  # parsed line
-
-            # isolate <class name>
-            _cls = pline[:pline.find('.')]
-
-            # isolate and validate <command>
-            _cmd = pline[pline.find('.') + 1:pline.find('(')]
-            if _cmd not in HBNBCommand.dot_cmds:
-                raise Exception
-
-            # if parantheses contain arguments, parse them
-            pline = pline[pline.find('(') + 1:pline.find(')')]
-            if pline:
-                # partition args: (<id>, [<delim>], [<*args>])
-                pline = pline.partition(', ')  # pline convert to tuple
-
-                # isolate _id, stripping quotes
-                _id = pline[0].replace('\"', '')
-                # possible bug here:
-                # empty quotes register as empty _id when replaced
-
-                # if arguments exist beyond _id
-                pline = pline[2].strip()  # pline is now str
-                if pline:
-                    # check for *args or **kwargs
-                    if pline[0] is '{' and pline[-1] is'}'\
-                            and type(eval(pline)) is dict:
-                        _args = pline
-                    else:
-                        _args = pline.replace(',', '')
-                        # _args = _args.replace('\"', '')
-            line = ' '.join([_cmd, _cls, _id, _args])
-
-        except Exception as mess:
-            pass
-        finally:
-            return line
 
     def postcmd(self, stop, line):
         """Prints if isatty is false"""
@@ -114,35 +62,38 @@ class HBNBCommand(cmd.Cmd):
         """ Overrides the emptyline method of CMD """
         pass
 
-    def do_create(self, args):
+    def do_create(self, line):
         """ Create an object of any class"""
-        args_list = args.split()
-        if not args:
-            print("** class name missing **")
-            return
-        elif args_list[0] not in HBNBCommand.classes:
-            print("** class doesn't exist **")
-            return
-        attr_dict = {}
-        for i in args_list:
-            attr_list = i.split('=')
-            attr_name = attr_list[0]
-            if len(attr_list) > 1:
-                attr_val = attr_list[1].strip('"')
-                if '_' in attr_val:
-                    attr_val = attr_val.replace('_', ' ')
-            if attr_name in HBNBCommand.types:
-                attr_val = HBNBCommand.types[attr_name](attr_val)
-                attr_dict[attr_name] = attr_val
-        new_instance = HBNBCommand.classes[args_list[0]]()
-        for k, v in attr_dict.items():
-            setattr(new_instance, k, v)
-        storage.save()
-        print(new_instance.id)
-        storage.save()
+        args = line.split()
+        if args[0] not in HBNBCommand.classes:
+            print("*** class dosen't exist ***")
+        elif not args:
+            print("*** Parameters not found ***")
+        else:
+            new_instance = HBNBCommand.classes[args[0]]()
+            print(new_instance.id)
+            new_instance.save()
+            attr = [s.replace('_', ' ')
+                    if s.startswith('name=') else s for s in args]
+            split_attr = [item.split('=') for item in attr]
+            new_attr = [[x.strip('"')
+                        for x in new] for new in split_attr]
+            attr_keys = [sublist[0]
+                         for sublist in new_attr if len(sublist) > 1]
+            attr_values = [sublist[1]
+                           for sublist in new_attr if len(sublist) > 1]
+            for key, value in storage.all().items():
+                obj = value
+
+            for k, v in zip(attr_keys, attr_values):
+                obj_dict = obj.__dict__
+                obj_dict[k] = v
+
+            storage.save()
 
     def help_create(self):
         """ Help information for the create method """
+
         print("Creates a class of any type")
         print("[Usage]: create <className>\n")
 
@@ -287,7 +238,7 @@ class HBNBCommand(cmd.Cmd):
                 args.append(v)
         else:  # isolate args
             args = args[2]
-            if args and args[0] is '\"':  # check for quoted arg
+            if args and args[0] == '\"':  # check for quoted arg
                 second_quote = args.find('\"', 1)
                 att_name = args[1:second_quote]
                 args = args[second_quote + 1:]
@@ -295,10 +246,10 @@ class HBNBCommand(cmd.Cmd):
             args = args.partition(' ')
 
             # if att_name was not quoted arg
-            if not att_name and args[0] is not ' ':
+            if not att_name and args[0] != ' ':
                 att_name = args[0]
             # check for quoted val arg
-            if args[2] and args[2][0] is '\"':
+            if args[2] and args[2][0] == '\"':
                 att_val = args[2][1:args[2].find('\"', 1)]
 
             # if att_val was not quoted arg
@@ -334,6 +285,7 @@ class HBNBCommand(cmd.Cmd):
         """ Help information for the update class """
         print("Updates an object with new information")
         print("Usage: update <className> <id> <attName> <attVal>\n")
+
 
 if __name__ == "__main__":
     HBNBCommand().cmdloop()
