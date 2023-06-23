@@ -1,19 +1,16 @@
--- create user
--- create database and user
-CREATE USER IF NOT EXISTS 'hbnb_dev'@'localhost' IDENTIFIED BY 'hbnb_dev_pwd';
-ALTER USER 'hbnb_dev'@'localhost' IDENTIFIED WITH mysql_native_password BY 'hbnb_dev_pwd';
-CREATE DATABASE IF NOT EXISTS hbnb_dev_db;
-REVOKE ALL PRIVILEGES ON *.* FROM 'hbnb_dev'@'localhost';
-GRANT SELECT on performance_schema.* TO 'hbnb_dev'@'localhost';
-GRANT ALL PRIVILEGES ON hbnb_dev_db.* TO 'hbnb_dev'@'localhost';
+-- Setting up my database
 
+-- Create a database
+CREATE DATABASE IF NOT EXISTS hbnb_test_db;
 
+-- Create a user
+CREATE USER IF NOT EXISTS 'hbnb_test'@'localhost' IDENTIFIED BY 'hbnb_test_pwd';
 
--- create user
--- create database and user
-CREATE USER IF NOT EXISTS 'hbnb_dev'@'localhost' IDENTIFIED BY 'hbnb_dev_pwd';
-ALTER USER 'hbnb_dev'@'localhost' IDENTIFIED WITH mysql_native_password BY 'hbnb_dev_pwd';
-CREATE DATABASE IF NOT EXISTS hbnb_dev_db;
-REVOKE ALL PRIVILEGES ON *.* FROM 'hbnb_dev'@'localhost';
-GRANT SELECT on performance_schema.* TO 'hbnb_dev'@'localhost';
-GRANT ALL PRIVILEGES ON hbnb_dev_db.* TO 'hbnb_dev'@'localhost';
+-- Grant user all privilege on the database
+GRANT ALL PRIVILEGES ON hbnb_test_db.* TO 'hbnb_test'@'localhost';
+
+-- Grant SELECT privilege on performance schema
+GRANT SELECT ON performance_schema.* TO 'hbnb_test'@'localhost';
+
+-- Apply all change
+FLUSH PRIVILEGES;
