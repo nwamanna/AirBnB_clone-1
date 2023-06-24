@@ -17,14 +17,16 @@ from models import storage
 
 storage_type = getenv("HBNB_TYPE_STORAGE")
 
-classes = {"Amenity": Amenity, "BaseModel": BaseModel, "City": City,
-           "Place": Place, "Review": Review, "State": State, "User": User}
-
 
 class HBNBCommand(cmd.Cmd):
     '''
         Contains the entry point of the command interpreter.
     '''
+
+    classes = {
+                'Amenity': Amenity, 'BaseModel': BaseModel, 'City': City,
+                'Place': Place, 'Review': Review, 'State': State, 'User': User
+              }
 
     prompt = ("(hbnb) ")
 
@@ -41,52 +43,34 @@ class HBNBCommand(cmd.Cmd):
         print()
         return True
 
-    def do_create(self, arg):
-        '''
-            Create a new instance of class BaseModel and saves it
-            to the JSON file.
-        '''
-        args = arg.split()
-
-        if len(args) == 0:
-            print("** class name missing **")
-            return
-
-        new_args = []
-        for a in args:
-            start_idx = a.find("=")
-            a = a[0: start_idx] + a[start_idx:].replace('_', ' ')
-            new_args.append(a)
-
-        if new_args[0] in classes:
-            new_instance = classes[new_args[0]]()
-            new_dict = {}
-            for a in new_args:
-                if a != new_args[0]:
-                    new_list = a.split('=')
-                    new_dict[new_list[0]] = new_list[1]
-
-            for k, v in new_dict.items():
-                if v[0] == '"':
-                    v_list = shlex.split(v)
-                    new_dict[k] = v_list[0]
-                    setattr(new_instance, k, new_dict[k])
-                else:
-                    try:
-                        if type(eval(v)).__name__ == 'int':
-                            v = eval(v)
-                    except TypeError:
-                        continue
-                    try:
-                        if type(eval(str(v))).__name__ == 'float':
-                            v = eval(v)
-                    except TypeError:
-                        continue
-                    setattr(new_instance, k, v)
-            new_instance.save()
-            print(new_instance.id)
+    def do_create(self, line):
+        """ Create an object of any class"""
+        args = line.split()
+        if args[0] not in HBNBCommand.classes:
+            print("*** class dosen't exist ***")
+        elif not args:
+            print("*** Parameters not found ***")
         else:
-            print("** class doesn't exist **")
+            new_instance = HBNBCommand.classes[args[0]]()
+            print(new_instance.id)
+            new_instance.save()
+            attr = [s.replace('_', ' ')
+                    if s.startswith('name=') else s for s in args]
+            split_attr = [item.split('=') for item in attr]
+            new_attr = [[x.strip('"')
+                        for x in new] for new in split_attr]
+            attr_keys = [sublist[0]
+                         for sublist in new_attr if len(sublist) > 1]
+            attr_values = [sublist[1]
+                           for sublist in new_attr if len(sublist) > 1]
+            for key, value in storage.all().items():
+                obj = value
+
+            for k, v in zip(attr_keys, attr_values):
+                obj_dict = obj.__dict__
+                obj_dict[k] = v
+
+            storage.save()
 
     def do_show(self, args):
         '''
@@ -145,22 +129,22 @@ class HBNBCommand(cmd.Cmd):
             Prints all string representation of all instances
             based or not on the class name.
         '''
-        obj_list = []
-        objects = storage.all()
-        try:
-            if len(args) != 0:
-                eval(args)
-        except NameError:
-            print("** class doesn't exist **")
-            return
-        for key, val in objects.items():
-            if len(args) != 0:
-                if type(val) is eval(args):
-                    obj_list.append(val)
-            else:
-                obj_list.append(val)
+        print_list = []
 
-        print(obj_list)
+        if args:
+            args = args.split(' ')[0]  # remove possible trailing args
+            if args not in HBNBCommand.classes:
+                print("** class doesn't exist **")
+                return
+            for k, v in storage._FileStorage__objects.items():
+                if k.split('.')[0] == args:
+                    print_list.append(str(v))
+        else:
+            for k, v in storage._FileStorage__objects.items():
+                print_list.append(repr(v))
+
+        print_list = "[" + str(print_list)[2:-2] + "]"
+        print(print_list)
 
     def do_update(self, args):
         '''
